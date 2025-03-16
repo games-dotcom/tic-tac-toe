@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic Tac Toe</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #333;
+    }
+
+    .container {
+      text-align: center;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-size: 2.5rem;
+    }
+
+    .mode-select button, .settings button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      background: #ff6f61;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .mode-select button:hover, .settings button:hover {
+      background: #ff3b2f;
+    }
+
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 5px;
+      margin: 20px auto;
+    }
+
+    .cell {
+      background: #fff;
+      border: 2px solid #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .cell:hover {
+      background: #f0f0f0;
+    }
+
+    .scoreboard {
+      margin: 20px 0;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .ad-section {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Tic Tac Toe</h1>
+    <div class="mode-select">
+      <button id="single-player-btn">Single Player</button>
+      <button id="two-player-btn">Two Players</button>
+    </div>
+    <div class="settings hidden">
+      <h3>Select AI Difficulty</h3>
+      <select id="ai-difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+      <button id="start-game-btn">Start Game</button>
+      <button id="exit-btn" class="hidden">Exit</button>
+    </div>
+    <div class="game-board hidden">
+      <div class="cell" data-index="0"></div>
+      <div class="cell" data-index="1"></div>
+      <div class="cell" data-index="2"></div>
+      <div class="cell" data-index="3"></div>
+      <div class="cell" data-index="4"></div>
+      <div class="cell" data-index="5"></div>
+      <div class="cell" data-index="6"></div>
+      <div class="cell" data-index="7"></div>
+      <div class="cell" data-index="8"></div>
+    </div>
+    <div class="scoreboard">
+      <p>Player X: <span id="player-x-score">0</span></p>
+      <p>Player O: <span id="player-o-score">0</span></p>
+      <p>Draws: <span id="draw-score">0</span></p>
+    </div>
+    <button id="restart-btn" class="hidden">Restart Game</button>
+    <div class="ad-section">
+      <!-- Google AdMob Integration -->
+      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=WRITE_APP_ID_HERE" crossorigin="anonymous"></script>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-app-pub-6261102070609726~2350631471"
+           data-ad-slot="ca-app-pub-6261102070609726/8524028286"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+  </div>
+
+  <script>
+    const board = document.querySelector('.game-board');
+    const cells = document.querySelectorAll('.cell');
+    const playerXScore = document.getElementById('player-x-score');
+    const playerOScore = document.getElementById('player-o-score');
+    const drawScore = document.getElementById('draw-score');
+    const restartBtn = document.getElementById('restart-btn');
+    const singlePlayerBtn = document.getElementById('single-player-btn');
+    const twoPlayerBtn = document.getElementById('two-player-btn');
+    const settings = document.querySelector('.settings');
+    const startGameBtn = document.getElementById('start-game-btn');
+    const aiDifficulty = document.getElementById('ai-difficulty');
+    const exitBtn = document.getElementById('exit-btn');
+
+    let currentPlayer = 'X';
+    let gameMode = null;
+    let aiLevel = 'easy';
+    let boardState = Array(9).fill('');
+    let scores = { X: 0, O: 0, draw: 0 };
+
+    // Event Listeners
+    singlePlayerBtn.addEventListener('click', () => {
+      gameMode = 'single';
+      settings.classList.remove('hidden');
+      singlePlayerBtn.classList.add('hidden');
+      twoPlayerBtn.classList.add('hidden');
+    });
+
+    twoPlayerBtn.addEventListener('click', () => {
+      gameMode = 'two';
+      startGame();
+    });
+
+    startGameBtn.addEventListener('click', () => {
+      aiLevel = aiDifficulty.value;
+      startGame();
+    });
+
+    exitBtn.addEventListener('click', () => {
+      resetGame();
+      settings.classList.add('hidden');
+      singlePlayerBtn.classList.remove('hidden');
+      twoPlayerBtn.classList.remove('hidden');
+    });
+
+    restartBtn.addEventListener('click', resetGame);
+
+    cells.forEach(cell => {
+      cell.addEventListener('click', handleCellClick);
+    });
+
+    // Functions
+    function startGame() {
+      boardState = Array(9).fill('');
+      currentPlayer = 'X';
+      board.classList.remove('hidden');
+      restartBtn.classList.remove('hidden');
+      settings.classList.add('hidden');
+      exitBtn.classList.remove('hidden');
+      cells.forEach(cell => cell.textContent = '');
+    }
+
+    function handleCellClick(e) {
+      const cell = e.target;
+      const index = cell.dataset.index;
+
+      if (boardState[index] !== '' || checkWinner(boardState)) return;
+
+      boardState[index] = currentPlayer;
+      cell.textContent = currentPlayer;
+
+      if (checkWinner(boardState)) {
+        updateScore(currentPlayer);
+        setTimeout(() => alert(`${currentPlayer} wins!`), 100);
+        return;
+      }
+
+      if (boardState.every(cell => cell !== '')) {
+        updateScore('draw');
+        setTimeout(() => alert('Draw!'), 100);
+        return;
+      }
+
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+
+      if (gameMode === 'single' && currentPlayer === 'O') {
+        aiMove();
+      }
+    }
+
+    function aiMove() {
+      let move;
+      if (aiLevel === 'easy') {
+        move = getRandomMove();
+      } else if (aiLevel === 'medium') {
+        move = getMediumMove();
+      } else if (aiLevel === 'hard') {
+        move = getBestMove();
+      }
+
+      boardState[move] = 'O';
+      cells[move].textContent = 'O';
+
+      if (checkWinner(boardState)) {
+        updateScore('O');
+        setTimeout(() => alert('O wins!'), 100);
+        return;
+      }
+
+      if (boardState.every(cell => cell !== '')) {
+        updateScore('draw');
+        setTimeout(() => alert('Draw!'), 100);
+        return;
+      }
+
+      currentPlayer = 'X';
+    }
+
+    function getRandomMove() {
+      const emptyCells = boardState.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
+      return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+    }
+
+    function getMediumMove() {
+      // Try to win or block player
+      const winningMove = findWinningMove('O');
+      if (winningMove !== null) return winningMove;
+
+      const blockingMove = findWinningMove('X');
+      if (blockingMove !== null) return blockingMove;
+
+      return getRandomMove();
+    }
+
+    function findWinningMove(player) {
+      for (let i = 0; i < 9; i++) {
+        if (boardState[i] === '') {
+          boardState[i] = player;
+          if (checkWinner(boardState)) {
+            boardState[i] = '';
+            return i;
+          }
+          boardState[i] = '';
+        }
+      }
+      return null;
+    }
+
+    function getBestMove() {
+      return minimax(boardState, 'O').index;
+    }
+
+    function minimax(board, player) {
+      const availableMoves = board.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
+
+      if (checkWinner(board)) {
+        return { score: player === 'O' ? -10 : 10 };
+      } else if (availableMoves.length === 0) {
+        return { score: 0 };
+      }
+
+      const moves = [];
+      for (let move of availableMoves) {
+        const newBoard = [...board];
+        newBoard[move] = player;
+
+        const result = minimax(newBoard, player === 'O' ? 'X' : 'O');
+        moves.push({ index: move, score: result.score });
+      }
+
+      let bestMove;
+      if (player === 'O') {
+        let bestScore = -Infinity;
+        for (let move of moves) {
+          if (move.score > bestScore) {
+            bestScore = move.score;
+            bestMove = move;
+          }
+        }
+      } else {
+        let bestScore = Infinity;
+        for (let move of moves) {
+          if (move.score < bestScore) {
+            bestScore = move.score;
+            bestMove = move;
+          }
+        }
+      }
+
+      return bestMove;
+    }
+
+    function checkWinner(board) {
+      const winningCombinations = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+        [0, 4, 8], [2, 4, 6]             // Diagonals
+      ];
+
+      for (let combo of winningCombinations) {
+        const [a, b, c] = combo;
+        if (board[a] !== '' && board[a] === board[b] && board[a] === board[c]) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function updateScore(winner) {
+      if (winner === 'X') {
+        scores.X++;
+        playerXScore.textContent = scores.X;
+      } else if (winner === 'O') {
+        scores.O++;
+        playerOScore.textContent = scores.O;
+      } else {
+        scores.draw++;
+        drawScore.textContent = scores.draw;
+      }
+    }
+
+    function resetGame() {
+      boardState = Array(9).fill('');
+      currentPlayer = 'X';
+      cells.forEach(cell => cell.textContent = '');
+      board.classList.add('hidden');
+      restartBtn.classList.add('hidden');
+      exitBtn.classList.add('hidden');
+      settings.classList.add('hidden');
+      singlePlayerBtn.classList.remove('hidden');
+      twoPlayerBtn.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
